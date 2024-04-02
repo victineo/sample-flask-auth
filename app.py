@@ -8,7 +8,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 
 # CAMINHO BRUTO PARA O BANCO DE DADOS. QUALQUER ALTERAÇÃO NISSO DEVE SER ATUALIZADA AQUI.
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///C:\\Users\\GAMER\\Desktop\\codigos\\Rocketseat\\Python\\Módulo 4\\sample-flask-auth\\instance\\database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:admin123@127.0.0.1:3306/flask-crud'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///C:\\Users\\GAMER\\Desktop\\codigos\\Rocketseat\\Python\\Módulo 4\\sample-flask-auth\\instance\\database.db'
 
 login_manager = LoginManager()
 db.init_app(app) # Iniciando a instância do SQLAlchemy 'db' com a aplicação Flask 'app'
@@ -31,7 +32,7 @@ def login():
         # Login
         user = User.query.filter_by(username=username).first() # Buscando no BD o primeiro user com esse nome
 
-        if user and user.password == password: # Verificando de há um user com tal nome e se a senha coincide com a cadastrada no BD
+        if user and bcrypt.checkpw(str.encode(password), str.encode(user.password)): # Verificando de há um user com tal nome e se a senha coincide com a cadastrada no BD
             login_user(user) # Autenticando user
             return jsonify({'message': 'Autenticação realizada com sucesso.'})
     
@@ -50,7 +51,8 @@ def create_user():
     password = data.get('password') # Extraindo 'password' do JSON
 
     if username and password: # Verificando se os dados 'username' e 'password' foram enviados
-        user = User(username=username, password=password)
+        hashed_password = bcrypt.hashpw(str.encode(password), bcrypt.gensalt())  # Criptografando a senha
+        user = User(username=username, password=hashed_password, role='user')
         db.session.add(user)
         db.session.commit()
         return jsonify({'message': 'Usuário cadastrado com sucesso.'})
@@ -73,6 +75,8 @@ def update_user(id_user):
     data = request.json # Recebendo dados enviados no JSON
     user = User.query.get(id_user) # Buscando no BD o usuário com tal ID
 
+    if id_user != current_user.id and current_user.role == 'user': # Se o ID solicitado for diferente do que está em uso E a role for de 'user', a operação é negada
+        return jsonify({'message': 'Operação não permitida. Você não pode alterar informações de outros usuários.'}), 403 # Forbidden
     if user and data.get('password'): # Se houver esse usuário e uma senha enviada no JSON
         user.password = data.get('password') # A senha será definida como o que veio no JSON
         db.session.commit()
@@ -85,8 +89,10 @@ def update_user(id_user):
 def delete_user(id_user):
     user = db.session.get(User, id_user) # Buscando no BD o usuário com tal ID
 
+    if current_user.role != 'admin': # Se a role não for 'admin', a operação é negada
+        return jsonify({'message': 'Operação não permitida. Você não pode deletar outros usuários.'}), 403 # Forbidden
     if id_user == current_user.id: # Se o ID solicitado for igual ao que está em uso atualmente
-        return jsonify({'message': 'Você não pode deletar a si mesmo.'}), 403 # Forbidden
+        return jsonify({'message': 'Operação não permitida. Você não pode deletar a si mesmo.'}), 403 # Forbidden
 
     if user: # Se houver esse usuário
         db.session.delete(user) # Delete
