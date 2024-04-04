@@ -7,7 +7,6 @@ import bcrypt
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 
-# CAMINHO BRUTO PARA O BANCO DE DADOS. QUALQUER ALTERAÇÃO NISSO DEVE SER ATUALIZADA AQUI.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:admin123@127.0.0.1:3306/flask-crud'
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///C:\\Users\\GAMER\\Desktop\\codigos\\Rocketseat\\Python\\Módulo 4\\sample-flask-auth\\instance\\database.db'
 
